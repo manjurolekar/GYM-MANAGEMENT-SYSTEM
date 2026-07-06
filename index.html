@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Blood Bank Management System</title>
+<link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/2966/2966482.png">
+
+<style>
+*{
+    box-sizing:border-box;
+    transition: all 0.3s ease;
+}
+body{
+    margin:0;
+    font-family:'Segoe UI',sans-serif;
+    background:
+      radial-gradient(circle at top left,#ff9a9e,#fad0c4,#fbc2eb),
+      linear-gradient(135deg,#a18cd1,#fbc2eb);
+    min-height:100vh;
+}
+
+/* ===== HEADER ===== */
+header{
+    background:linear-gradient(90deg,#ff416c,#ff4b2b,#ff416c);
+    color:white;
+    padding:25px 50px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 10px 30px rgba(255,65,108,.5);
+    position:sticky;
+    top:0;
+    z-index:1000;
+}
+header h1{
+    font-size:28px;
+    letter-spacing:1px;
+    text-shadow:0 0 10px rgba(255,255,255,.6);
+}
+nav a{
+    color:white;
+    text-decoration:none;
+    margin-left:10px;
+    padding:12px 22px;
+    border-radius:30px;
+    background:rgba(255,255,255,.25);
+    backdrop-filter: blur(6px);
+    font-weight:bold;
+}
+nav a:hover{
+    background:white;
+    color:#ff416c;
+    box-shadow:0 0 15px #fff;
+}
+
+/* ===== SECTIONS ===== */
+section{
+    width:92%;
+    margin:50px auto;
+    padding:35px;
+    background:rgba(255,255,255,.92);
+    border-radius:25px;
+    box-shadow:
+      0 20px 40px rgba(0,0,0,.2),
+      inset 0 0 20px rgba(255,255,255,.7);
+    animation: fadeUp .6s ease;
+}
+@keyframes fadeUp{
+    from{opacity:0; transform:translateY(30px)}
+    to{opacity:1; transform:translateY(0)}
+}
+
+h2{
+    color:#ff416c;
+    font-size:26px;
+    margin-bottom:20px;
+    text-shadow:0 0 8px rgba(255,65,108,.4);
+}
+h3{
+    color:#ff4b2b;
+}
+
+/* ===== INPUTS ===== */
+input,select{
+    width:100%;
+    padding:14px;
+    margin:12px 0;
+    border-radius:14px;
+    border:2px solid #ffd6de;
+    font-size:15px;
+}
+input:focus,select:focus{
+    outline:none;
+    border-color:#ff416c;
+    box-shadow:0 0 12px rgba(255,65,108,.6);
+}
+
+/* ===== BUTTON ===== */
+.btn{
+    padding:14px 40px;
+    background:linear-gradient(45deg,#ff416c,#ff4b2b);
+    color:white;
+    border:none;
+    border-radius:30px;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:16px;
+    box-shadow:0 8px 20px rgba(255,65,108,.6);
+}
+.btn:hover{
+    transform:scale(1.05);
+    box-shadow:0 12px 30px rgba(255,65,108,.8);
+}
+
+/* ===== TABLE ===== */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:25px;
+    overflow:hidden;
+    border-radius:20px;
+}
+th,td{
+    padding:14px;
+    text-align:center;
+    border:1px solid #ffd6de;
+}
+th{
+    background:linear-gradient(45deg,#ff416c,#ff4b2b);
+    color:white;
+    position:sticky;
+    top:0;
+    text-shadow:0 0 6px rgba(255,255,255,.6);
+}
+tr{
+    background:white;
+}
+tr:nth-child(even){
+    background:#fff5f7;
+}
+tr:hover{
+    background:#ffe0e7;
+}
+
+/* ===== ZERO STOCK MAGIC ===== */
+.zero-stock{
+    background:linear-gradient(45deg,#ff9a9e,#ff6a88)!important;
+    color:#7a0000;
+    font-weight:bold;
+    box-shadow: inset 0 0 10px rgba(255,0,0,.4);
+}
+
+/* ===== TOTAL ROW ===== */
+.total-row{
+    background:linear-gradient(90deg,#ffe6e6,#ffd1dc);
+    font-weight:bold;
+    color:#b30000;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{
+    width:10px;
+}
+::-webkit-scrollbar-thumb{
+    background:linear-gradient(#ff416c,#ff4b2b);
+    border-radius:10px;
+}
+::-webkit-scrollbar-track{
+    background:#ffe6ee;
+}
+</style>
+</head>
+
+<body>
+<header>
+<h1>Blood Bank Management System</h1>
+<nav>
+<a href="#add">ADD</a>
+<a href="#stock">STOCK</a>
+<a href="#donor">DONOR</a>
+<a href="#delete">DELETE</a>
+<a href="#give">ISSUE</a>
+<a href="#monthly">MONTHLY</a>
+</nav>
+</header>
+
+<!-- Add Donor -->
+<section id="add">
+<h2>Add Donor</h2>
+<form action="/add_donor" method="POST">
+<input name="name" placeholder="Donor Name" required>
+<input name="age" type="number" placeholder="Age" required>
+<input name="blood_group" placeholder="Blood Group (A+, O-)" required>
+<input name="contact" placeholder="Contact Number" required>
+<button class="btn">Add Donor</button>
+</form>
+</section>
+
+<!-- Blood Stock -->
+<section id="stock">
+<h2>Blood Stock</h2>
+<table id="stock_table">
+<tr>
+<th>Blood Group</th>
+<th>Units</th>
+<th>Amount / Unit (₹)</th>
+</tr>
+{% set total_units = 0 %}
+{% set total_value = 0 %}
+{% for s in stock %}
+<tr class="{{ 'zero-stock' if s[1] == 0 }}">
+<td>{{ s[0] }}</td>
+<td>{{ s[1] }}</td>
+<td>{{ s[2] }}</td>
+</tr>
+{% set total_units = total_units + s[1] %}
+{% set total_value = total_value + (s[1] * s[2]) %}
+{% endfor %}
+<tr class="total-row">
+<td>Total</td>
+<td>{{ total_units }}</td>
+<td>{{ total_value }}</td>
+</tr>
+</table>
+
+<h3>Add Stock</h3>
+<form action="/add_stock" method="POST">
+<select name="blood_group" required>
+    <option value="">Select Blood Group</option>
+    <option value="A+">A+</option>
+    <option value="A-">A-</option>
+    <option value="B+">B+</option>
+    <option value="B-">B-</option>
+    <option value="AB+">AB+</option>
+    <option value="AB-">AB-</option>
+    <option value="O+">O+</option>
+    <option value="O-">O-</option>
+</select>
+<input name="units" type="number" placeholder="Units" required>
+<button class="btn">Add Stock</button>
+</form>
+</section>
+
+<!-- Donor List -->
+<section id="donor">
+<h2>Donor List</h2>
+<table>
+<tr><th>ID</th><th>Name</th><th>Blood Group</th><th>Contact</th></tr>
+{% for d in donors %}
+<tr>
+<td>{{ d[0] }}</td>
+<td>{{ d[1] }}</td>
+<td>{{ d[2] }}</td>
+<td>{{ d[3] }}</td>
+</tr>
+{% endfor %}
+</table>
+</section>
+
+<!-- Delete Donor -->
+<section id="delete">
+<h2>Delete Donor</h2>
+<form action="/delete_donor" method="POST">
+<input name="donor_id" type="number" placeholder="Donor ID" required>
+<button class="btn">Delete</button>
+</form>
+</section>
+
+<!-- Issue Blood -->
+<section id="give">
+<h2>Issue Blood</h2>
+<form action="/give_blood" method="POST">
+<select name="blood_group" id="issue_blood_group" required>
+    <option value="">Select Blood Group</option>
+    <option value="A+">A+</option>
+    <option value="A-">A-</option>
+    <option value="B+">B+</option>
+    <option value="B-">B-</option>
+    <option value="AB+">AB+</option>
+    <option value="AB-">AB-</option>
+    <option value="O+">O+</option>
+    <option value="O-">O-</option>
+</select>
+
+<input name="units" id="issue_units" type="number" placeholder="Units" min="1" required>
+<input type="text" id="amount_per_unit" placeholder="Amount / Unit (₹)" readonly>
+<input type="text" id="total_amount" placeholder="Total Amount (₹)" readonly>
+
+<button class="btn">Issue</button>
+</form>
+
+<script>
+// Blood prices and available units (from stock)
+const bloodPrices = {
+    "A+": 1200, "A-": 1500,
+    "B+": 1200, "B-": 1500,
+    "AB+": 1800, "AB-": 2200,
+    "O+": 1000, "O-": 2000
+};
+
+// Available stock units from the table
+const stockTable = document.getElementById("stock_table");
+const availableUnits = {};
+for (let i = 1; i < stockTable.rows.length - 1; i++) { // skip header & total row
+    const row = stockTable.rows[i];
+    const group = row.cells[0].innerText;
+    const units = parseInt(row.cells[1].innerText);
+    availableUnits[group] = units;
+}
+
+const bloodGroupInput = document.getElementById("issue_blood_group");
+const unitsInput = document.getElementById("issue_units");
+const amountInput = document.getElementById("amount_per_unit");
+const totalInput = document.getElementById("total_amount");
+
+function updateAmount() {
+    const group = bloodGroupInput.value;
+    const maxUnits = availableUnits[group] || 0;
+    unitsInput.max = maxUnits; // set max attribute dynamically
+    if (parseInt(unitsInput.value) > maxUnits) {
+        unitsInput.value = maxUnits; // adjust if input exceeds
+    }
+    const units = parseInt(unitsInput.value) || 0;
+    const pricePerUnit = bloodPrices[group] || 0;
+    amountInput.value = pricePerUnit;
+    totalInput.value = pricePerUnit * units;
+}
+
+bloodGroupInput.addEventListener("change", updateAmount);
+unitsInput.addEventListener("input", updateAmount);
+</script>
+</section>
+
+<!-- Monthly Report -->
+<section id="monthly">
+<h2>Monthly Report</h2>
+
+<h3>Donations</h3>
+<table>
+<tr><th>Blood Group</th><th>Units</th></tr>
+{% for m in monthly_donations %}
+<tr><td>{{ m[0] }}</td><td>{{ m[1] }}</td></tr>
+{% endfor %}
+</table>
+
+<h3>Issued</h3>
+<table>
+<tr><th>Blood Group</th><th>Units</th><th>Total Amount (₹)</th></tr>
+{% for m in monthly_issued %}
+<tr><td>{{ m[0] }}</td><td>{{ m[1] }}</td><td>{{ m[2] }}</td></tr>
+{% endfor %}
+</table>
+</section>
+
+</body>
+</html>
